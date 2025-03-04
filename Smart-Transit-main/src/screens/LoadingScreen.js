@@ -24,7 +24,11 @@ const LoadingScreen = () => {
         duration: 1111,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start((animation) => {
+      if(loading){
+        animateDots(dot)
+      }
+    });
   };
 
   useEffect(() => {
@@ -61,6 +65,13 @@ const LoadingScreen = () => {
           <Animated.Text style={[styles.dot, { opacity: dot3 }]}>.</Animated.Text>
         </View>
       )}
+
+      {/* Added image at the bottom */}
+      <Image
+        source={require('../../assets/loadingscreen.png')} // Replace with your image path
+        style={styles.bottomImage}
+        resizeMode="stretch" // Or 'cover', 'stretch', etc. based on your needs
+      />
     </View>
   );
 };
@@ -101,6 +112,12 @@ const styles = StyleSheet.create({
     fontSize: 40, // Size of the dot
     color: '#000000', // Dot color
     marginHorizontal: 5, // Space between dots
+  },
+  bottomImage: {
+    width: '100%', // Adjust as needed
+    height: 100, // Adjust as needed
+    position: 'absolute', // Position at the bottom
+    bottom: 0,       // Align to the bottom
   },
 });
 

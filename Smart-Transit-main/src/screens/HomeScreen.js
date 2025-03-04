@@ -9,7 +9,7 @@ import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestor
 import Header from '../components/Header';
 import { useTheme } from './ThemeContext';  // Import useTheme from ThemeContext
 
-const GOOGLE_MAPS_APIKEY = "YOUR_GOOGLE_MAPS_API_KEY"; // Replace with your actual API key
+const GOOGLE_MAPS_APIKEY = "AIzaSyCZNsXmvcKmBuJ9JCqlk2a2hk8jGx_Dv_k"; // Replace with your actual API key
 
 const HomeScreen = ({ navigation }) => {
     const { isDarkMode, setIsDarkMode } = useTheme(); // Access theme from context
