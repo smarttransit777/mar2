@@ -129,6 +129,38 @@ const HomeScreen = ({ navigation }) => {
             color: 'red', // Red color
             fontWeight: '600',
         },
+        occupancyContainer: {  // Added container for the bus visual
+            width: 40,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: '#888',
+            overflow: 'hidden',
+            marginLeft: 5,
+            backgroundColor: '#eee', // Light background
+        },
+        occupancyFill: {
+            height: '100%',
+            backgroundColor: 'green', // Default green color
+        },
+        occupancyStatus: { // added styling
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: 'white',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 8,
+        },
+        lessBusy: {  // added style for "Less Busy"
+            backgroundColor: 'green',
+        },
+        busy: {  // added style for "Busy"
+            backgroundColor: 'yellow',
+            color: 'black' // Important for visibility on yellow background
+        },
+        overcrowded: {  // added style for "Overcrowded"
+            backgroundColor: 'red',
+        },
     });
 
     const [dynamicStyle, setDynamicStyle] = useState(dynamicStyles); // Define Dynamic Style to set for isDarkMode and save into usestate on render
@@ -295,8 +327,10 @@ const HomeScreen = ({ navigation }) => {
     };
 
     const renderBusItem = ({ item }) => {
-        const availableSeats = (seatCountsByBusId[item.id] !== undefined) ? Math.max(0, 50 - Number(seatCountsByBusId[item.id])) : 'Unknown';
-        // Calculate available seats based on seatCountsByBusId, default totalSeats is 50
+        const seatsTaken = seatCountsByBusId[item.id] ? Number(seatCountsByBusId[item.id]) : 0;
+        let availableSeats = Math.max(0, 50 - seatsTaken);
+        availableSeats = availableSeats > 50 ? 0 : availableSeats; // Ensure availableSeats never goes negative or above 50
+
         const totalSeats = 50;
         const eta = item.eta;
         const distance = item.distance; // Get distance calculated in useEffect
@@ -310,26 +344,71 @@ const HomeScreen = ({ navigation }) => {
             etaDisplay = eta !== null ? `ETA: ${eta} mins` : 'ETA: Not available'; // correct ETA if distance > 1
         }
 
+        // Calculate occupancy percentage
+        const occupancyPercentage = (1 - (availableSeats / totalSeats)) * 100;
+
+        let fillColor = 'green';
+        if (availableSeats > 0 && availableSeats < 35) {
+            fillColor = 'yellow';
+        } else if (availableSeats === 0) {
+            fillColor = 'red';
+        }
+
+        let occupancyStatus = null;
+        let occupancyStyle = {};  // Initialize occupancyStyle
+
+        // Set default to "Less Busy"
+        //occupancyStatus = 'Less Busy'; // Removed as default needs to be conditional based on seatCountsByBusId
+        //occupancyStyle = dynamicStyle.lessBusy; // Removed for the same reason
+
+        if (seatCountsByBusId[item.id] !== undefined) {
+            if (availableSeats > 20) {
+                occupancyStatus = 'Less Busy';
+                occupancyStyle = dynamicStyle.lessBusy;
+            } else if (availableSeats > 0 && availableSeats <= 20) {
+                occupancyStatus = 'Busy';
+                occupancyStyle = dynamicStyle.busy;
+            } else {
+                occupancyStatus = 'Overcrowded';
+                occupancyStyle = dynamicStyle.overcrowded;
+            }
+        } else {
+            // Set to "Less Busy" if seat count is not available
+            occupancyStatus = 'Less Busy';
+            occupancyStyle = dynamicStyle.lessBusy;
+        }
+
         return (
-            <View style={dynamicStyles.busItemContainer}>
-                <View style={dynamicStyles.busItemContent}>
+            <View style={dynamicStyle.busItemContainer}>
+                <View style={dynamicStyle.busItemContent}>
                     <TouchableOpacity
-                        style={dynamicStyles.busArrow}
+                        style={dynamicStyle.busArrow}
                         onPress={() => navigation.navigate('MapScreen', { busId: item.id, busName: item.bus_name })}
                     >
                         <FontAwesome name="map-marker" size={30} color={isDarkMode ? '#98FB98' : '#228B22'} />
                     </TouchableOpacity>
-                    <View style={dynamicStyles.busInfo}>
-                        <Text style={dynamicStyles.busName}>{item.bus_name}</Text>
-                        <Text style={dynamicStyles.busText}>Bus Number: {item.bus_number}</Text>
-                        <Text style={dynamicStyles.busText}>Route: {item.route}</Text>
-                        <Text style={dynamicStyles.seatStatus}>{item.occupancy}</Text>
+                    <View style={dynamicStyle.busInfo}>
+                        <Text style={dynamicStyle.busName}>{item.bus_name}</Text>
+                        <Text style={dynamicStyle.busText}>Bus Number: {item.bus_number}</Text>
+                        <Text style={dynamicStyle.busText}>Route: {item.route}</Text>
+
                         <Text style={dynamicStyles.arrivalTimeText}>
                             {etaDisplay}
                         </Text>
-                        <Text style={dynamicStyles.availableSeatsText}>
-                            Available Seats: {availableSeats === 'Unknown' ? 'Unknown' : `${availableSeats} / ${totalSeats}`}
-                        </Text>
+                        <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <Text style={dynamicStyles.availableSeatsText}>
+                                Available Seats: {availableSeats} / {totalSeats}
+                            </Text>
+                            {occupancyStatus && (
+                                <Text style={[
+                                    dynamicStyle.occupancyStatus,
+                                    occupancyStyle  // Apply the occupancy style (color)
+                                ]}>
+                                    {occupancyStatus}
+                                </Text>
+                            )}
+                            
+                        </View>
                     </View>
                 </View>
             </View>
@@ -354,8 +433,8 @@ const HomeScreen = ({ navigation }) => {
                     value={isDarkMode}
                 />
             </View>
-             <ScrollView contentContainerStyle={dynamicStyle.scrollContent}>
-            {/* Pass isDarkMode prop to Header */}
+            <ScrollView contentContainerStyle={dynamicStyle.scrollContent}>
+                {/* Pass isDarkMode prop to Header */}
                 <Header
                     weather={weather}
                     locationDetails={locationDetails}

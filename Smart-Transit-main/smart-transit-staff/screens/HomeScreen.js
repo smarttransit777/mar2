@@ -10,7 +10,7 @@ export default function LocationScreen({ route }) {
   const [busDetails, setBusDetails] = useState(null);
   const [location, setLocation] = useState(null);
   const [status, setStatus] = useState('Running'); // Default status set to "Running"
-  const [occupancy, setOccupancy] = useState(null); // Occupancy status
+  // const [occupancy, setOccupancy] = useState(null); // Occupancy status - REMOVED
 
   // Fetch bus details
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function LocationScreen({ route }) {
           const busDoc = querySnapshot.docs[0];
           setBusDetails({ id: busDoc.id, ...busDoc.data() });
           setStatus(busDoc.data().status || 'Running'); // If status exists, set it, otherwise default to "Running"
-          setOccupancy(busDoc.data().occupancy); // Set initial occupancy from DB
+          // setOccupancy(busDoc.data().occupancy); // Set initial occupancy from DB - REMOVED
         } else {
           Alert.alert('Error', 'No bus found for the given bus number.');
         }
@@ -54,7 +54,10 @@ export default function LocationScreen({ route }) {
     if (status === 'granted') {
       const loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
-      Alert.alert('Location Accessed', 'Your current location has been fetched.');
+      await updateBusLocation(); // Update location immediately after getting it
+      setStatus('Running'); // automatically set the status to running when location is updated
+      updateBusStatus('Running'); // Update the status in firebase.
+      Alert.alert('Location Accessed', 'Your current location has been fetched and bus is now marked as Running.');
     } else {
       Alert.alert('Permission Denied', 'Unable to access location services.');
     }
@@ -75,11 +78,15 @@ export default function LocationScreen({ route }) {
     }
   };
 
-  // Toggle status between "Running" and "Breakdown"
+  // Toggle status between "Running" and "Breakdown" - Changed logic
   const toggleBusStatus = async () => {
     if (!busDetails) return;
+    const newStatus = status === 'Running' ? 'Not Running' : 'Running';
+    updateBusStatus(newStatus);
+  };
 
-    const newStatus = status === 'Running' ? 'Breakdown' : 'Running';
+  // Update bus status to firebase
+  const updateBusStatus = async (newStatus) => {
     try {
       const docRef = doc(db, 'buses', busDetails.id);
       await updateDoc(docRef, { status: newStatus });
@@ -88,21 +95,6 @@ export default function LocationScreen({ route }) {
     } catch (error) {
       console.error('Error updating status:', error);
       Alert.alert('Error', 'Failed to update bus status.');
-    }
-  };
-
-  // Handle occupancy selection
-  const handleOccupancyChange = async (selectedOccupancy) => {
-    if (!busDetails) return;
-
-    try {
-      const docRef = doc(db, 'buses', busDetails.id);
-      await updateDoc(docRef, { occupancy: selectedOccupancy });
-      setOccupancy(selectedOccupancy); // Update local state to reflect the change
-      Alert.alert('Occupancy Updated', `Bus occupancy is now set to "${selectedOccupancy}".`);
-    } catch (error) {
-      console.error('Error updating occupancy:', error);
-      Alert.alert('Error', 'Failed to update bus occupancy.');
     }
   };
 
@@ -134,34 +126,14 @@ export default function LocationScreen({ route }) {
             </Text>
           )}
 
-          <Text style={styles.occupancyTitle}>Occupancy Status</Text>
-          <View style={styles.occupancyContainer}>
-            <TouchableOpacity
-              style={[styles.occupancyIcon, occupancy === 'Overcrowded' && styles.selectedIcon]}
-              onPress={() => handleOccupancyChange('Overcrowded')}
-            >
-              <FontAwesome name="exclamation-circle" size={40} color="red" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.occupancyIcon, occupancy === 'Fully Seated' && styles.selectedIcon]}
-              onPress={() => handleOccupancyChange('Fully Seated')}
-            >
-              <FontAwesome name="check-circle" size={40} color="green" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.occupancyIcon, occupancy === 'Less Busy' && styles.selectedIcon]}
-              onPress={() => handleOccupancyChange('Less Busy')}
-            >
-              <FontAwesome name="thumbs-up" size={40} color="blue" />
-            </TouchableOpacity>
-          </View>
+          {/* REMOVED OCCUPANCY SECTION */}
 
           <TouchableOpacity
-            style={[styles.button, status === 'Running' ? styles.breakdownButton : styles.runningButton]}
+            style={[styles.button, status === 'Running' ? styles.runningButton : styles.notRunningButton]}
             onPress={toggleBusStatus}
           >
             <Text style={styles.buttonText}>
-              {status === 'Running' ? 'Set to Breakdown' : 'Set to Running'}
+              {status === 'Running' ? 'Set to Not Running' : 'Set to Running'}
             </Text>
           </TouchableOpacity>
         </>
@@ -217,11 +189,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  breakdownButton: {
+  breakdownButton: { //Removed
     backgroundColor: '#f44336',
   },
   runningButton: {
     backgroundColor: '#2196F3',
+  },
+  notRunningButton: { // Added
+    backgroundColor: '#f44336',
   },
   locationText: {
     fontSize: 16,
@@ -234,24 +209,24 @@ const styles = StyleSheet.create({
     color: '#777',
     textAlign: 'center',
   },
-  occupancyTitle: {
+  occupancyTitle: { // Removed
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginVertical: 20,
     textAlign: 'center',
   },
-  occupancyContainer: {
+  occupancyContainer: { // Removed
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 20,
   },
-  occupancyIcon: {
+  occupancyIcon: { // Removed
     padding: 15,
     borderRadius: 50,
     backgroundColor: '#f0f0f0',
   },
-  selectedIcon: {
+  selectedIcon: { // Removed
     backgroundColor: '#d1e7dd',
     borderWidth: 2,
     borderColor: '#4CAF50',
